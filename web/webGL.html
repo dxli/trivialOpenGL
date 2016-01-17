@@ -3,7 +3,27 @@
  <head>
   <meta http-equiv="Content=Type" Content="text/html; charset=UTF-8">
   <title>WebGL</title>
-    <script language="javascript">
+ <!-- vertex shader --!>
+ <script id="vshader" type="x-shader">
+attribute vec3 aPosition;
+attribute vec2 aTexCoord;
+varying vec2 tex;
+void main() {
+	gl_Position = vec4(aPosition, 1.);
+	tex = aTexCoord;
+}
+ </script>
+
+ <!-- fragment shader --!>
+ <script id="fshader" type="x-shader">
+precision mediump float;
+uniform sampler2D uTexSampler;
+varying vec2 tex;
+void main() {
+	gl_FragColor = texture2D(uTexSampler, tex);
+}
+</script>
+   <script language="javascript">
 var canvas;
 var gl;
 var myCtx = {texture:0, program:0, vbo:0,
@@ -88,22 +108,12 @@ function createTexture(pixels, width, height) {
         0.80,0.80, 0.0, 		0.85, 0.85,
         0.80,-0.80,0.0, 		0.85, 0.15
 	 ];
-   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-   var vs = 'attribute vec3 aPosition;' +
-'attribute vec2 aTexCoord;' +
-'varying vec2 tex;' +
-'void main() {' +
-'gl_Position = vec4(aPosition, 1.);' +
-'tex = aTexCoord;' +
-     '}';
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-    var  fs = 'precision mediump float;' +
-     'uniform sampler2D uTexSampler;' +
-'varying vec2 tex;' +
-'void main() {' +
-'gl_FragColor = texture2D(uTexSampler, tex);' +
-'}';
-      myCtx.program = createProgram(vs, fs);
+  //shaders
+   var vs = document.getElementById('vshader').textContent;
+   var fs = document.getElementById('fshader').textContent;
+       myCtx.program = createProgram(vs, fs);
       //uniform
       myCtx.uTexSampler = gl.getUniformLocation(myCtx.program, 'uTexSampler');
       //attributes
