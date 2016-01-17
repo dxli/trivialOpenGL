@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
-            <head>
-            <meta http-equiv="Content=Type" Content="text/html; charset=UTF-8">
-                             <title>WebGL</title>
-                             <script language="javascript">
+ <head>
+  <meta http-equiv="Content=Type" Content="text/html; charset=UTF-8">
+  <title>WebGL</title>
+    <script language="javascript">
 //! create shader program
 function createProgram(gl, vstr, fstr) {
-    var program = gl.createProgram();
-    var vshader = createShader(gl, vstr, gl.VERTEX_SHADER);
-    var fshader = createShader(gl, fstr, gl.FRAGMENT_SHADER);
-    gl.attachShader(program, vshader);
-    gl.attachShader(program, fshader);
-    gl.linkProgram(program);
-    return program;
+ var program = gl.createProgram();
+ var vshader = createShader(gl, vstr, gl.VERTEX_SHADER);
+ var fshader = createShader(gl, fstr, gl.FRAGMENT_SHADER);
+ gl.attachShader(program, vshader);
+ gl.attachShader(program, fshader);
+ gl.linkProgram(program);
+ return program;
 }
 
 //! compile a single shader
 function createShader(gl, str, type) {
-    var shader = gl.createShader(type);
-    gl.shaderSource(shader, str);
-    gl.compileShader(shader);
-    var compilationLog = gl.getShaderInfoLog(shader);
-    console.log('Shader compiler log: ' + compilationLog);
-    return shader;
+ var shader = gl.createShader(type);
+ gl.shaderSource(shader, str);
+ gl.compileShader(shader);
+ var compilationLog = gl.getShaderInfoLog(shader);
+console.log('Shader compiler log: ' + compilationLog);
+ return shader;
 }
 
 //! create texture from pixel data
@@ -30,83 +30,84 @@ function createTexture(gl, pixels, width, height) {
     var data = new Uint8Array(pixels);
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     return texture;
 }
 
-function initializeWebGL() {
-    var canvas = document.getElementById("gl");
-    var gl = canvas.getContext("webgl") ||
-             canvas.getContext("experimental-webgl") ||
-             canvas.getContext("moz-webgl") ||
-             canvas.getContext("webkit-3d");
-    if (gl) {
-        //! var extensions = gl.getSupportedExtensions();
-        //! console.log("extensions: " + extensions);
-        gl.viewportWidth = canvas.width;
-        gl.viewportHeight = canvas.height;
-        //gl.clearColor(1.0,0.,0.,1.);
-        //gl.clear(gl.COLOR_BUFFER_BIT);
+  function initializeWebGL() {
+  var canvas = document.getElementById("gl");
+  var gl = canvas.getContext("webgl") ||
+  canvas.getContext("experimental-webgl") ||
+  canvas.getContext("moz-webgl") ||
+  canvas.getContext("webkit-3d");
+  if (gl) {
+   //! var extensions = gl.getSupportedExtensions();
+   //! console.log("extensions: " + extensions);
+   gl.viewportWidth = canvas.width;
+   gl.viewportHeight = canvas.height;
+   //gl.clearColor(1.0,0.,0.,1.);
+   //gl.clear(gl.COLOR_BUFFER_BIT);
 
-        //texture
-        var pixels = [
-                         '0', '0', '0', '0xff',
-                         '0', '0xff', '0', '0xff',
-                         '0', '0', '0xff',  '0xff',
-                         '0x80', '0x80', '0x80', '0xff'
-                     ];
+   //texture
+   var pixels = [
+      '0', '0', '0', '0xff',
+        '0', '0xff', '0', '0xff',
+        '0', '0', '0xff',  '0xff',
+        '0x80', '0x80', '0x80', '0xff'
+    ];
 
-        var texture = createTexture(gl, pixels, 2, 2);
+   var texture = createTexture(gl, pixels, 2, 2);
 
-        //VBO
-        var vbo = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-        var vertices = [
-                           -0.80,0.80, 0.0,      	0.15, 0.85,
-                           -0.80,-0.80,0.0, 		0.15, 0.15,
-                           0.80,0.80, 0.0, 		0.85, 0.85,
-                           0.80,-0.80,0.0, 		0.85, 0.15
-                       ];
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        var vs = 'attribute vec3 aPosition;' +
-                 'attribute vec2 aTexCoord;' +
-                 'varying vec2 tex;' +
-                 'void main() {' +
-                 'gl_Position = vec4(aPosition, 1.);' +
-                 'tex = aTexCoord;' +
-                 '}';
+   //VBO
+   var vbo = gl.createBuffer();
+   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+   var vertices = [
+     -0.80,0.80, 0.0,      	0.15, 0.85,
+        -0.80,-0.80,0.0, 		0.15, 0.15,
+        0.80,0.80, 0.0, 		0.85, 0.85,
+        0.80,-0.80,0.0, 		0.85, 0.15
+	 ];
+   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+   var vs = 'attribute vec3 aPosition;' +
+'attribute vec2 aTexCoord;' +
+'varying vec2 tex;' +
+'void main() {' +
+'gl_Position = vec4(aPosition, 1.);' +
+'tex = aTexCoord;' +
+     '}';
 
-        var  fs = 'precision mediump float;' +
-                  'uniform sampler2D uTexSampler;' +
-                  'varying vec2 tex;' +
-                  'void main() {' +
-                  'gl_FragColor = texture2D(uTexSampler, tex);' +
-                  '}';
-        var program = createProgram(gl, vs, fs);
-        gl.useProgram(program);
-        gl.activeTexture(gl.GL_TEXTURE0);
-        gl.bindTexture(gl.GL_TEXTURE_2D, texture);
+    var  fs = 'precision mediump float;' +
+     'uniform sampler2D uTexSampler;' +
+'varying vec2 tex;' +
+'void main() {' +
+'gl_FragColor = texture2D(uTexSampler, tex);' +
+'}';
+      var program = createProgram(gl, vs, fs);
+      gl.useProgram(program);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
         // Set our "uTexSampler" sampler to user Texture Unit 0
-        var samplerID = gl.getUniformLocation(program, 'uTexSampler');
+	var samplerID = gl.getUniformLocation(program, 'uTexSampler');
         gl.uniform1i(samplerID, 0);
 
-        program.vertexPosAttrib = gl.getAttribLocation(program, 'aPosition');
-        gl.enableVertexAttribArray(program.vertexPosAttrib);
-        gl.vertexAttribPointer(program.vertexPosAttrib, 3, gl.FLOAT, false, 20, 0);
-        program.vertexTexAttrib = gl.getAttribLocation(program, 'aTexCoord');
-        gl.enableVertexAttribArray(program.vertexTexAttrib);
-        gl.vertexAttribPointer(program.vertexTexAttrib, 2, gl.FLOAT, false, 20, 12);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    } else {
-        console.log("Your browser doesn't support WebGL");
-    }
-}
+      var aPosition = gl.getAttribLocation(program, 'aPosition');
+      gl.enableVertexAttribArray(aPosition);
+      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 20, 0);
+      var aTexCoord= gl.getAttribLocation(program, 'aTexCoord');
+      gl.enableVertexAttribArray(aTexCoord);
+      gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 20, 12);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+ } else {
+  console.log("Your browser doesn't support WebGL");
+ }
+ }
 
-</script>
-</head>
-<body onload = "initializeWebGL()">
-               <canvas id="gl" with="640" height="480"></canvas>
-                                    </body>
-                                    </html>
+  </script>
+ </head>
+ <body onload = "initializeWebGL()">
+  <canvas id="gl" with="640" height="480"></canvas>
+ </body>
+</html>
