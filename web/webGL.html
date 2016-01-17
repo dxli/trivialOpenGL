@@ -31,7 +31,9 @@ function createShader(str, type) {
  gl.shaderSource(shader, str);
  gl.compileShader(shader);
  var compilationLog = gl.getShaderInfoLog(shader);
-console.log('Shader compiler log: ' + compilationLog);
+ if (compilationLog) {
+  console.log('Shader compiler log: ' + compilationLog);
+ }
  return shader;
 }
 
