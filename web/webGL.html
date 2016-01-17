@@ -4,11 +4,21 @@
   <meta http-equiv="Content=Type" Content="text/html; charset=UTF-8">
   <title>WebGL</title>
     <script language="javascript">
+var canvas;
+var gl;
+var myCtx = {texture:0, program:0, vbo:0,
+ //
+ width:0, height:0,
+ //attributes
+ aPosition:0, aTexCoord:0,
+ //uniform
+ uTexSampler:0};
+  
 //! create shader program
-function createProgram(gl, vstr, fstr) {
+function createProgram(vstr, fstr) {
  var program = gl.createProgram();
- var vshader = createShader(gl, vstr, gl.VERTEX_SHADER);
- var fshader = createShader(gl, fstr, gl.FRAGMENT_SHADER);
+ var vshader = createShader(vstr, gl.VERTEX_SHADER);
+ var fshader = createShader(fstr, gl.FRAGMENT_SHADER);
  gl.attachShader(program, vshader);
  gl.attachShader(program, fshader);
  gl.linkProgram(program);
@@ -16,7 +26,7 @@ function createProgram(gl, vstr, fstr) {
 }
 
 //! compile a single shader
-function createShader(gl, str, type) {
+function createShader(str, type) {
  var shader = gl.createShader(type);
  gl.shaderSource(shader, str);
  gl.compileShader(shader);
@@ -26,11 +36,13 @@ console.log('Shader compiler log: ' + compilationLog);
 }
 
 //! create texture from pixel data
-function createTexture(gl, pixels, width, height) {
+function createTexture(pixels, width, height) {
     var data = new Uint8Array(pixels);
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    // this option flip texture image in Y, upside down
+    //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -38,8 +50,12 @@ function createTexture(gl, pixels, width, height) {
 }
 
   function initializeWebGL() {
-  var canvas = document.getElementById("gl");
-  var gl = canvas.getContext("webgl") ||
+   //create canvas
+  canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+
+  //get OpenGL context
+  gl = canvas.getContext("webgl") ||
   canvas.getContext("experimental-webgl") ||
   canvas.getContext("moz-webgl") ||
   canvas.getContext("webkit-3d");
@@ -59,11 +75,11 @@ function createTexture(gl, pixels, width, height) {
         '0x80', '0x80', '0x80', '0xff'
     ];
 
-   var texture = createTexture(gl, pixels, 2, 2);
+   myCtx.texture = createTexture(pixels, 2, 2);
 
    //VBO
-   var vbo = gl.createBuffer();
-   gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+   myCtx.vbo = gl.createBuffer();
+   gl.bindBuffer(gl.ARRAY_BUFFER, myCtx.vbo);
    var vertices = [
      -0.80,0.80, 0.0,      	0.15, 0.85,
         -0.80,-0.80,0.0, 		0.15, 0.15,
@@ -85,29 +101,56 @@ function createTexture(gl, pixels, width, height) {
 'void main() {' +
 'gl_FragColor = texture2D(uTexSampler, tex);' +
 '}';
-      var program = createProgram(gl, vs, fs);
-      gl.useProgram(program);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        // Set our "uTexSampler" sampler to user Texture Unit 0
-	var samplerID = gl.getUniformLocation(program, 'uTexSampler');
-        gl.uniform1i(samplerID, 0);
+      myCtx.program = createProgram(vs, fs);
+      //uniform
+      myCtx.uTexSampler = gl.getUniformLocation(myCtx.program, 'uTexSampler');
+      //attributes
+      myCtx.aPosition = gl.getAttribLocation(myCtx.program, 'aPosition');
+      myCtx.aTexCoord= gl.getAttribLocation(myCtx.program, 'aTexCoord');
 
-      var aPosition = gl.getAttribLocation(program, 'aPosition');
-      gl.enableVertexAttribArray(aPosition);
-      gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 20, 0);
-      var aTexCoord= gl.getAttribLocation(program, 'aTexCoord');
-      gl.enableVertexAttribArray(aTexCoord);
-      gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 20, 12);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
- } else {
+      resizeCanvas();
+      render();
+     window.addEventListener('resize', resizeCanvas);
+      
+      } else {
   console.log("Your browser doesn't support WebGL");
  }
  }
 
+   function render() {
+       gl.useProgram(myCtx.program);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, myCtx.texture);
+        // Set our "uTexSampler" sampler to user Texture Unit 0
+        gl.uniform1i(myCtx.uTexSampler, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, myCtx.vbo);
+      gl.enableVertexAttribArray(myCtx.aPosition);
+      gl.vertexAttribPointer(myCtx.aPosition, 3, gl.FLOAT, false, 20, 0);
+      gl.enableVertexAttribArray(myCtx.aTexCoord);
+      gl.vertexAttribPointer(myCtx.aTexCoord, 2, gl.FLOAT, false, 20, 12);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   }
+   
+function resizeCanvas() {
+   // only change the size of the canvas if the size it's being displayed
+   // has changed.
+ 	myCtx.width = window.innerWidth;
+ 	myCtx.height = window.innerHeight;
+   if (canvas.width != myCtx.width || canvas.height != myCtx.height) {
+ console.log("resize " + myCtx.width + " x " + myCtx.height);
+     // Change the size of the canvas to match the size it's being displayed
+ canvas.width = myCtx.width;
+ canvas.height = myCtx.height;
+     gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
+     //white background
+     gl.clearColor(1,1,1,0);
+     gl.clear(gl.COLOR_BUFFER_BIT);
+     render();
+     }
+}
+
   </script>
  </head>
  <body onload = "initializeWebGL()">
-  <canvas id="gl" with="640" height="480"></canvas>
  </body>
 </html>
