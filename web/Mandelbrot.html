@@ -19,6 +19,7 @@ precision highp float;
 precision mediump float;
 #endif
 uniform vec2 uCanvasSize;
+uniform float uScale;
 vec4 calc(vec2 texCoord)
 {
 vec2 v = vec2(0., 0.);
@@ -37,7 +38,7 @@ return vec4(0, 0, 0, 1);
 void main() {
 
 vec2 texCoord = gl_FragCoord.xy - uCanvasSize*0.5;
-texCoord /= 0.5*min(uCanvasSize.x,uCanvasSize.y);
+texCoord /= 0.5*uScale*min(uCanvasSize.x,uCanvasSize.y);
 	gl_FragColor = calc(texCoord);
 }
 </script>
@@ -50,7 +51,9 @@ var myCtx = {texture:0, program:0, vbo:0,
  //attributes
  aPosition:0,
  //uniform
- uCanvasSize:0};
+ uCanvasSize:0,
+ uScale:0,
+zoom:1.};
   
 //! create shader program
 function createProgram(vstr, fstr) {
@@ -134,12 +137,15 @@ function createTexture(pixels, width, height) {
        myCtx.program = createProgram(vs, fs);
       //uniform
       myCtx.uCanvasSize = gl.getUniformLocation(myCtx.program, 'uCanvasSize');
+      myCtx.uScale = gl.getUniformLocation(myCtx.program, 'uScale');
       //attributes
       myCtx.aPosition = gl.getAttribLocation(myCtx.program, 'aPosition');
+      myCtx.zoom = 1.;
 
       resizeCanvas();
       render();
      window.addEventListener('resize', resizeCanvas);
+canvas.addEventListener("wheel", myFunction);
       
       } else {
   console.log("Your browser doesn't support WebGL");
@@ -150,12 +156,20 @@ function createTexture(pixels, width, height) {
        gl.useProgram(myCtx.program);
         // Set our "uTexSampler" sampler to user Texture Unit 0
       gl.uniform2f(myCtx.uCanvasSize, myCtx.width, myCtx.height);
+      gl.uniform1f(myCtx.uScale, myCtx.zoom);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, myCtx.vbo);
       gl.enableVertexAttribArray(myCtx.aPosition);
       gl.vertexAttribPointer(myCtx.aPosition, 3, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
    }
+function myFunction(e) {
+ var e = window.event || e; // old IE support
+	var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+	myCtx.zoom *= 1. + 0.05*delta;
+	render();
+}
+
    
 function resizeCanvas() {
    // only change the size of the canvas if the size it's being displayed
