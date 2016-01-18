@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <meta http-equiv="Content=Type" Content="text/html; charset=UTF-8">
+  <title>WebGL</title>
+ <!-- vertex shader --!>
+ <script id="vshader" type="x-shader">
+attribute vec3 aPosition;
+void main() {
+	gl_Position = vec4(aPosition, 1.);
+}
+ </script>
+
+ <!-- fragment shader --!>
+ <script id="fshader" type="x-shader">
+#ifdef GLFRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 uCanvasSize;
+vec4 calc(vec2 texCoord)
+{
+vec2 v = vec2(0., 0.);
+for (int i = 0; i < 120; ++i) {
+v = vec2(v.x*v.x - v.y*v.y, 2.*v.x*v.y) + texCoord;
+float r2 = dot(v, v);
+if (r2 >= 8.) {
+float d = (float(i) - log(log(r2)*0.5)/log(2.))/50.;
+return vec4(d, d, d, 1);
+}
+}
+return vec4(0, 0, 0, 1);
+}
+void main() {
+
+vec2 texCoord = gl_FragCoord.xy - uCanvasSize*0.5;
+texCoord /= 0.5*min(uCanvasSize.x,uCanvasSize.y);
+	gl_FragColor = calc(texCoord);
+}
+</script>
+   <script language="javascript">
+var canvas;
+var gl;
+var myCtx = {texture:0, program:0, vbo:0,
+ //
+ width:0, height:0,
+ //attributes
+ aPosition:0,
+ //uniform
+ uCanvasSize:0};
+  
+//! create shader program
+function createProgram(vstr, fstr) {
+ var program = gl.createProgram();
+ var vshader = createShader(vstr, gl.VERTEX_SHADER);
+ var fshader = createShader(fstr, gl.FRAGMENT_SHADER);
+ gl.attachShader(program, vshader);
+ gl.attachShader(program, fshader);
+ gl.linkProgram(program);
+ return program;
+}
+
+//! compile a single shader
+function createShader(str, type) {
+ var shader = gl.createShader(type);
+ gl.shaderSource(shader, str);
+ gl.compileShader(shader);
+ var compilationLog = gl.getShaderInfoLog(shader);
+ if (compilationLog) {
+  console.log('Shader compiler log: ' + compilationLog);
+ }
+ return shader;
+}
+
+//! create texture from pixel data
+function createTexture(pixels, width, height) {
+    var data = new Uint8Array(pixels);
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // this option flip texture image in Y, upside down
+    //gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    return texture;
+}
+
+  function initializeWebGL() {
+   //create canvas
+  canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+
+  //get OpenGL context
+  gl = canvas.getContext("webgl") ||
+  canvas.getContext("experimental-webgl") ||
+  canvas.getContext("moz-webgl") ||
+  canvas.getContext("webkit-3d");
+  if (gl) {
+   //! var extensions = gl.getSupportedExtensions();
+   //! console.log("extensions: " + extensions);
+   gl.viewportWidth = canvas.width;
+   gl.viewportHeight = canvas.height;
+   //gl.clearColor(1.0,0.,0.,1.);
+   //gl.clear(gl.COLOR_BUFFER_BIT);
+
+   //texture
+   var pixels = [
+      '0', '0', '0', '0xff',
+        '0', '0xff', '0', '0xff',
+        '0', '0', '0xff',  '0xff',
+        '0x80', '0x80', '0x80', '0xff'
+    ];
+
+   myCtx.texture = createTexture(pixels, 2, 2);
+
+   //VBO
+   myCtx.vbo = gl.createBuffer();
+   gl.bindBuffer(gl.ARRAY_BUFFER, myCtx.vbo);
+   var vertices = [
+     -1.0,1.0, 0.0,
+        -1.0,-1.0,0.0,
+        1.0,1.0, 0.0,
+        1.0,-1.0,0.0
+	 ];
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+  //shaders
+   var vs = document.getElementById('vshader').textContent;
+   var fs = document.getElementById('fshader').textContent;
+       myCtx.program = createProgram(vs, fs);
+      //uniform
+      myCtx.uCanvasSize = gl.getUniformLocation(myCtx.program, 'uCanvasSize');
+      //attributes
+      myCtx.aPosition = gl.getAttribLocation(myCtx.program, 'aPosition');
+
+      resizeCanvas();
+      render();
+     window.addEventListener('resize', resizeCanvas);
+      
+      } else {
+  console.log("Your browser doesn't support WebGL");
+ }
+ }
+
+   function render() {
+       gl.useProgram(myCtx.program);
+        // Set our "uTexSampler" sampler to user Texture Unit 0
+      gl.uniform2f(myCtx.uCanvasSize, myCtx.width, myCtx.height);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, myCtx.vbo);
+      gl.enableVertexAttribArray(myCtx.aPosition);
+      gl.vertexAttribPointer(myCtx.aPosition, 3, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+   }
+   
+function resizeCanvas() {
+   // only change the size of the canvas if the size it's being displayed
+   // has changed.
+ 	myCtx.width = window.innerWidth;
+ 	myCtx.height = window.innerHeight;
+   if (canvas.width != myCtx.width || canvas.height != myCtx.height) {
+ console.log("resize " + myCtx.width + " x " + myCtx.height);
+     // Change the size of the canvas to match the size it's being displayed
+ canvas.width = myCtx.width;
+ canvas.height = myCtx.height;
+     gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
+     //white background
+     gl.clearColor(1,1,1,0);
+     gl.clear(gl.COLOR_BUFFER_BIT);
+     render();
+     }
+}
+
+  </script>
+ </head>
+ <body onload = "initializeWebGL()">
+ </body>
+</html>
