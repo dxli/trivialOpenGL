@@ -22,12 +22,14 @@ uniform vec2 uCanvasSize;
 vec4 calc(vec2 texCoord)
 {
 vec2 v = vec2(0., 0.);
-for (int i = 0; i < 120; ++i) {
+for (int i = 0; i < 255; ++i) {
 v = vec2(v.x*v.x - v.y*v.y, 2.*v.x*v.y) + texCoord;
 float r2 = dot(v, v);
 if (r2 >= 8.) {
-float d = (float(i) - log(log(r2)*0.5)/log(2.))/50.;
-return vec4(d, d, d, 1);
+
+float d = (float(i) - log(log(r2)) + log(1. + exp(-r2/8.))/2.)/50.;
+float f = log(1. + cos(float(i+1)/(r2*r2)))/10.;
+return vec4(d - f, d + 0.5*f, d + f, 1);
 }
 }
 return vec4(0, 0, 0, 1);
