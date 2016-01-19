@@ -39,7 +39,9 @@ return vec4(0, 0, 0, 1);
 void main() {
 
 vec2 texCoord = gl_FragCoord.xy + uOffset - uCanvasSize*0.5;
-texCoord /= 0.5*uScale*min(uCanvasSize.x, uCanvasSize.y);
+texCoord /= 0.5*min(uCanvasSize.x, uCanvasSize.y);
+float f = 0.5*min(uCanvasSize.x, uCanvasSize.y);
+texCoord = (uOffset + (gl_FragCoord.xy - uCanvasSize*0.5)/uScale)/f;
 	gl_FragColor = calc(texCoord);
 }
 </script>
@@ -181,8 +183,8 @@ function onMouseDown(e) {
 function onMouseMove(e) {
  if (myCtx.mousePressed == 0)
     return;
- myCtx.offset[0] -= e.clientX - myCtx.pointer[0];
- myCtx.offset[1] += e.clientY - myCtx.pointer[1];
+ myCtx.offset[0] -= (e.clientX - myCtx.pointer[0])/myCtx.zoom;
+ myCtx.offset[1] += (e.clientY - myCtx.pointer[1])/myCtx.zoom;
  myCtx.pointer=[e.clientX, e.clientY];
  render();
 }
