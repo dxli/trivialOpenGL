@@ -20,6 +20,7 @@ precision mediump float;
 #endif
 uniform vec2 uCanvasSize;
 uniform float uScale;
+uniform vec2 uOffset;
 vec4 calc(vec2 texCoord)
 {
 vec2 v = vec2(0., 0.);
@@ -37,8 +38,8 @@ return vec4(0, 0, 0, 1);
 }
 void main() {
 
-vec2 texCoord = gl_FragCoord.xy - uCanvasSize*0.5;
-texCoord /= 0.5*uScale*min(uCanvasSize.x,uCanvasSize.y);
+vec2 texCoord = gl_FragCoord.xy + uOffset - uCanvasSize*0.5;
+texCoord /= 0.5*uScale*min(uCanvasSize.x, uCanvasSize.y);
 	gl_FragColor = calc(texCoord);
 }
 </script>
@@ -53,6 +54,10 @@ var myCtx = {texture:0, program:0, vbo:0,
  //uniform
  uCanvasSize:0,
  uScale:0,
+ uOffset:0,
+ mousePressed:0,
+ pointerSaved:[0.,0.],
+ offset:[0.,0.],
 zoom:1.};
   
 //! create shader program
@@ -138,14 +143,19 @@ function createTexture(pixels, width, height) {
       //uniform
       myCtx.uCanvasSize = gl.getUniformLocation(myCtx.program, 'uCanvasSize');
       myCtx.uScale = gl.getUniformLocation(myCtx.program, 'uScale');
+      myCtx.uOffset = gl.getUniformLocation(myCtx.program, 'uOffset');
       //attributes
       myCtx.aPosition = gl.getAttribLocation(myCtx.program, 'aPosition');
       myCtx.zoom = 1.;
 
       resizeCanvas();
       render();
+      //mouse events
      window.addEventListener('resize', resizeCanvas);
-canvas.addEventListener("wheel", myFunction);
+canvas.addEventListener("wheel", onZoom);
+canvas.addEventListener("mousedown", onMouseDown);
+canvas.addEventListener("mousemove", onMouseMove);
+canvas.addEventListener("mouseup", onMouseUp);
       
       } else {
   console.log("Your browser doesn't support WebGL");
@@ -157,13 +167,31 @@ canvas.addEventListener("wheel", myFunction);
         // Set our "uTexSampler" sampler to user Texture Unit 0
       gl.uniform2f(myCtx.uCanvasSize, myCtx.width, myCtx.height);
       gl.uniform1f(myCtx.uScale, myCtx.zoom);
+      gl.uniform2f(myCtx.uOffset, myCtx.offset[0], myCtx.offset[1]);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, myCtx.vbo);
       gl.enableVertexAttribArray(myCtx.aPosition);
       gl.vertexAttribPointer(myCtx.aPosition, 3, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
    }
-function myFunction(e) {
+function onMouseDown(e) {
+ myCtx.pointer=[e.clientX, e.clientY];
+ myCtx.mousePressed = 1;
+}
+function onMouseMove(e) {
+ if (myCtx.mousePressed == 0)
+    return;
+ myCtx.offset[0] -= e.clientX - myCtx.pointer[0];
+ myCtx.offset[1] += e.clientY - myCtx.pointer[1];
+ myCtx.pointer=[e.clientX, e.clientY];
+ render();
+}
+
+function onMouseUp(e) {
+ myCtx.mousePressed = 0;
+}
+
+function onZoom(e) {
  var e = window.event || e; // old IE support
 	var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 	myCtx.zoom *= 1. + 0.05*delta;
@@ -177,7 +205,7 @@ function resizeCanvas() {
  	myCtx.width = window.innerWidth;
  	myCtx.height = window.innerHeight;
    if (canvas.width != myCtx.width || canvas.height != myCtx.height) {
- console.log("resize " + myCtx.width + " x " + myCtx.height);
+ //console.log("resize " + myCtx.width + " x " + myCtx.height);
      // Change the size of the canvas to match the size it's being displayed
  canvas.width = myCtx.width;
  canvas.height = myCtx.height;
