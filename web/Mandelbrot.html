@@ -37,11 +37,8 @@ return vec4(d - f, d + 0.5*f, d + f, 1);
 return vec4(0, 0, 0, 1);
 }
 void main() {
-
-vec2 texCoord = gl_FragCoord.xy + uOffset - uCanvasSize*0.5;
-texCoord /= 0.5*min(uCanvasSize.x, uCanvasSize.y);
-float f = 0.5*min(uCanvasSize.x, uCanvasSize.y);
-texCoord = (uOffset + (gl_FragCoord.xy - uCanvasSize*0.5)/uScale)/f;
+	float f = 0.5*min(uCanvasSize.x, uCanvasSize.y);
+	vec2 texCoord = (uOffset + (gl_FragCoord.xy - uCanvasSize*0.5)/uScale)/f;
 	gl_FragColor = calc(texCoord);
 }
 </script>
@@ -196,7 +193,13 @@ function onMouseUp(e) {
 function onZoom(e) {
  var e = window.event || e; // old IE support
 	var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-	myCtx.zoom *= 1. + 0.05*delta;
+	var newZoom = myCtx.zoom * (1. + 0.03*delta);
+	var f = (1./newZoom - 1./myCtx.zoom);
+	var fx = (e.clientX - myCtx.width * 0.5) * f;
+	var fy = (e.clientY - myCtx.height * 0.5) * f;
+	 myCtx.offset[0] -= fx;
+	 myCtx.offset[1] += fy;
+	 myCtx.zoom = newZoom;
 	render();
 }
 
